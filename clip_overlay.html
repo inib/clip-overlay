@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Featured Clip Overlay</title>
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <!-- Streamer.bot WebSocket client (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@streamerbot/client/dist/streamerbot-client.js"></script>
+  <style>
+    html, body, #app { width:100%; height:100%; margin:0; background:transparent; overflow:hidden; }
+    iframe { width:100%; height:100%; border:0; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    // ---- config via URL params ----
+    const qp = new URLSearchParams(location.search);
+    const HOST = qp.get('host') || location.hostname || '127.0.0.1';
+    const PORT = Number(qp.get('port') || 8080);
+    const PASSWORD = qp.get('password') || undefined;
+    const PARENT = qp.get('parent') || location.hostname || 'localhost';
+    const MUTED = 'false'; // default true
+    const FALLBACK_SECONDS = Number(qp.get('fallbackSeconds') || 30); // if duration missing
+
+    // ---- connect to Streamer.bot WS and subscribe to General.Custom ----
+    const client = new window.StreamerbotClient({
+      host: HOST, port: PORT, password: PASSWORD,
+      subscribe: { 'General': ['Custom'] }
+    });
+
+    client.on('General.Custom', (packet) => {
+      // Streamer.bot wraps your JSON as the event "data". Try to unwrap gracefully.
+      const raw = packet?.data?.data ?? packet?.data ?? packet;
+      const topic = raw?.topic || raw?.type;
+
+      if (topic !== 'featuredClip') return;
+      const clip = raw.clip || raw;
+
+      playClip(clip);
+    });
+
+    function playClip(clip) {
+      // Clean previous
+      const mount = document.getElementById('app');
+      mount.innerHTML = '';
+
+      // Build embed URL for Clips. Twitch Clips only provide an iframe API (no quality control).
+      // https://dev.twitch.tv/docs/embed/ (Clips section)
+      let src;
+      if (clip?.embedUrl) {
+        const u = new URL(clip.embedUrl);
+        u.searchParams.set('parent', PARENT);
+        u.searchParams.set('autoplay', 'true');
+        // autoplay in chromium-based OBS generally requires muted
+        u.searchParams.set('muted', String(MUTED));
+        src = u.toString();
+      } else if (clip?.slug) {
+        const u = new URL('https://clips.twitch.tv/embed');
+        u.searchParams.set('clip', clip.slug);
+        u.searchParams.set('parent', PARENT);
+        u.searchParams.set('autoplay', 'true');
+        u.searchParams.set('muted', String(MUTED));
+        src = u.toString();
+      } else {
+        console.warn('No embedUrl or slug provided in clip payload.');
+        return;
+      }
+
+      const iframe = document.createElement('iframe');
+      iframe.src = src;
+      iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+      iframe.setAttribute('preload', 'metadata');
+      iframe.setAttribute('scrolling', 'no');
+
+      mount.appendChild(iframe);
+
+      // Unload after duration to free resources.
+      const seconds = Number(clip?.duration) || FALLBACK_SECONDS;
+      window.setTimeout(() => { mount.innerHTML = ''; }, Math.max(1, seconds) * 1200);
+    }
+  </script>
+</body>
+</html>
