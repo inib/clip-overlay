@@ -6,8 +6,9 @@ Fetch a random **featured** Twitch clip for a user, broadcast it, and autoplay i
 
 ## Contents
 
-* `StreamerBotAction.cs` – C# Code sub-action.
-* `clip-overlay.html` – OBS overlay page.
+* `clip_overlay.cs` – C# Code sub-action.
+* `clip_overlay.html` – OBS overlay page.
+* `streamerbot.export` – sample chat command/action import code.
 
 ---
 
