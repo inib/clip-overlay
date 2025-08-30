@@ -58,7 +58,7 @@ see `streamerbot.export` - import the code to streamer.bot to get a working `!sh
 ## 2) Use
 
 * Add a browser source to OBS:
-http://localhost:7474/clip-overlay.html?parent=localhost&host=127.0.0.1&port=8080
+http://localhost:7474/clip_overlay/clip_overlay.html?parent=localhost&host=127.0.0.1&port=8080
 
 * In Streamer.bot, run the action
    The overlay autoplays a random featured clip and then unloads.
